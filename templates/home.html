@@ -5,25 +5,93 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Home</title>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        .recording-card {
+            border: 1px solid #ccc;
+            padding: 20px;
+            margin: 20px 0;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+        .recording-card img {
+            max-width: 100%;
+            height: auto;
+            border-radius: 8px;
+        }
+        .chart-container {
+            width: 75%;
+            margin: auto;
+        }
+    </style>
 </head>
 <body>
-    <h1>Welcome to the Homepage</h1>
-    <!-- <canvas id="myChart"></canvas>
+    <a href="{{ url_for('profile') }}">Profile</a> | <a href="{{ url_for('logout') }}">Logout</a>
+    <h1>Welcome! {{ username }}</h1>
+    <div style="width: 75%; margin: auto;">
+        <canvas id="pushupChart"></canvas>
+    </div>
+
+    <div class="recording-card">
+        <h2>Most Recent Pushup Recording</h2>
+        {% if most_recent_recording %}
+            <p><strong>Attempt:</strong> {{ most_recent_recording.attempt }}</p>
+            <p><strong>Pushups:</strong> {{ most_recent_recording.no_of_reps }}</p>
+            <p><strong>Timestamp:</strong> {{ most_recent_recording.timestamp }}</p>
+            {% if most_recent_recording.bad_form_img %}
+                <p><strong>Bad Form Image:</strong></p>
+                <img src="data:image/jpeg;base64,{{ most_recent_recording.bad_form_img }}" alt="Bad Form Image">
+            {% else %}
+                <p>No bad form image available.</p>
+            {% endif %}
+        {% else %}
+            <p>No recordings found.</p>
+        {% endif %}
+    </div>
+
     <script>
-        var ctx = document.getElementById('myChart').getContext('2d');
-        var myChart = new Chart(ctx, {
-            type: 'bar',
+        // Get data passed from Flask
+        const pushupLabels = {{ labels | tojson | safe }};
+        const pushupData = {{ data | tojson | safe }};
+    
+        // Render the chart
+        const ctx = document.getElementById('pushupChart').getContext('2d');
+        const pushupChart = new Chart(ctx, {
+            type: 'line',
             data: {
-                labels: ['Red', 'Blue', 'Yellow', 'Green', 'Purple', 'Orange'],
+                labels: pushupLabels,
                 datasets: [{
-                    label: '# of Votes',
-                    data: [12, 19, 3, 5, 2, 3],
-                    backgroundColor: ['red', 'blue', 'yellow', 'green', 'purple', 'orange']
+                    label: 'Number of Pushups',
+                    data: pushupData,
+                    backgroundColor: 'rgba(54, 162, 235, 0.2)',
+                    borderColor: 'rgba(54, 162, 235, 1)',
+                    borderWidth: 2,
+                    fill: true
                 }]
+            },
+            options: {
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        title: {
+                            display: true,
+                            text: 'Number of Pushups'
+                        }
+                    },
+                    x: {
+                        title: {
+                            display: true,
+                            text: 'Attempt'
+                        }
+                    }
+                },
+                plugins: {
+                    title: {
+                        display: true,
+                        text: 'Past Pushup Records'
+                    }
+                }
             }
         });
-    </script> -->
-    <br>
-    <a href="{{ url_for('profile') }}">Profile</a> | <a href="{{ url_for('logout') }}">Logout</a>
+    </script>
 </body>
 </html>

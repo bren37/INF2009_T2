@@ -10,7 +10,7 @@ app = Flask(__name__)
 app.config['SECRET_KEY'] = 'your_secret_key'
 
 # Initialize Firebase
-cred = credentials.Certificate("C:/Users/brend/Desktop/IN2009_T2/credentials/credentials.json")
+cred = credentials.Certificate("C:/Users/brend/Desktop/INF2009_T2/credentials/credentials.json")
 firebase_admin.initialize_app(cred)
 db = firestore.client()
 
@@ -26,11 +26,48 @@ class LoginForm(FlaskForm):
     password = PasswordField('Password', validators=[DataRequired()])
     submit = SubmitField('Login')
 
-@app.route('/')
+@app.route('/home')
 def home():
-    if 'username' not in session:  # Check if user is logged in
-        return redirect(url_for('login'))  # Redirect to login if not logged in
-    return render_template('home.html')
+    if 'username' not in session:
+        return redirect(url_for('login'))
+    
+    # Fetch user data from Firestore
+    username = session['username']
+    user_ref = db.collection('users').document(username).get()
+    if not user_ref.exists:
+        flash("User data not found.", "danger")
+        return redirect(url_for('home'))
+
+    user_data = user_ref.to_dict()
+
+    recordings_ref = db.collection('recording').where('username', '==', username).stream()
+    recordings = []
+    for recording in recordings_ref:
+        recordings.append(recording.to_dict())
+
+    # Sort recordings by attempt number (ascending order)
+    recordings.sort(key=lambda x: x['attempt'])
+
+    # Prepare data for the chart
+    labels = []  # Attempt numbers or timestamps
+    data = []    # Number of pushups
+    for recording in recordings:
+        labels.append(f"Attempt {recording['attempt']}")  # Use attempt number as label
+        data.append(recording['no_of_reps'])  # Use pushups as data
+
+    # Fetch the most recent recording
+    most_recent_recording_ref = db.collection('recording').where('username', '==', username).order_by('timestamp',direction=firestore.Query.DESCENDING).limit(1).stream()
+    most_recent_recording = None
+    for recording in most_recent_recording_ref:
+        most_recent_recording = recording.to_dict()
+
+    # Pass user data, chart data, and most recent recording to the template
+    return render_template('home.html', 
+                          name=user_data['name'], 
+                          username=user_data['username'], 
+                          labels=labels, 
+                          data=data, 
+                          most_recent_recording=most_recent_recording)
 
 @app.route('/register', methods=['GET', 'POST'])
 def register():
@@ -71,9 +108,33 @@ def login():
 
 @app.route('/profile')
 def profile():
-    if 'username' in session:
-        return render_template('profile.html', username=session['username'])
-    return redirect(url_for('login'))
+    if 'username' not in session:
+        return redirect(url_for('login'))
+
+    # Fetch user data from Firestore
+    username = session['username']
+    user_ref = db.collection('users').document(username).get()
+    if not user_ref.exists:
+        flash("User data not found.", "danger")
+        return redirect(url_for('home'))
+
+    user_data = user_ref.to_dict()
+
+    # Fetch user's pushup recordings from Firestore
+    recordings_ref = db.collection('recording').where('username', '==', username).stream()
+    recordings = []
+    for recording in recordings_ref:
+        recordings.append(recording.to_dict())
+
+    # Sort recordings by attempt number (ascending order)
+    recordings.sort(key=lambda x: x['attempt'])
+
+    # Pass user data and recordings to the template
+    return render_template('profile.html', 
+                          name=user_data['name'], 
+                          username=user_data['username'], 
+                          date_of_birth=user_data['date_of_birth'],
+                          recordings=recordings)
 
 @app.route('/logout')
 def logout():

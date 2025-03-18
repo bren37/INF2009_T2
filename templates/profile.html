@@ -23,11 +23,17 @@
     </style>
 </head>
 <body>
-    <a href="{{ url_for('home') }}">Home</a> | <a href="{{ url_for('logout') }}">Logout</a>
+    <a href="{{ url_for('main_home') }}">Home</a> | <a href="{{ url_for('logout') }}">Logout</a>
     <h1>Welcome, {{ name }}</h1>
+    <p><strong>Name:</strong> {{ name }}</p>
     <p><strong>Username:</strong> {{ username }}</p>
     <p><strong>Date of Birth:</strong> {{ date_of_birth }}</p>
+    <p><strong>Age:</strong> {{ age }} years old</p>
+    <p><strong>Weight:</strong> {{ weight }} kg</p>
+    <p><strong>Height:</strong> {{ height }} M</p>
+    
 
+    <a href="{{ url_for('update_profile') }}"><button>Edit Profile</button></a>
     <!-- Table for past pushup recordings -->
     <h2>Past Pushup Recordings</h2>
     <table>

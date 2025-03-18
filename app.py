@@ -2,15 +2,16 @@ from flask import Flask, render_template, redirect, url_for, request, session, f
 import firebase_admin
 from firebase_admin import credentials, firestore
 from flask_wtf import FlaskForm
-from wtforms import StringField, PasswordField, SubmitField, DateField
+from wtforms import StringField, PasswordField, SubmitField, DateField, IntegerField
 from wtforms.validators import DataRequired, Length
+from datetime import datetime
 from werkzeug.security import generate_password_hash, check_password_hash
 
 app = Flask(__name__)
 app.config['SECRET_KEY'] = 'your_secret_key'
 
 # Initialize Firebase
-cred = credentials.Certificate("C:/Users/brend/Desktop/INF2009_T2/credentials/credentials.json")
+cred = credentials.Certificate("C:/Users/Brendan/Desktop/INF2009_T2/credentials/credentials.json")
 firebase_admin.initialize_app(cred)
 db = firestore.client()
 
@@ -19,6 +20,8 @@ class RegistrationForm(FlaskForm):
     username = StringField('Username', validators=[DataRequired(), Length(min=4, max=20)])
     date_of_birth = DateField('Date of Birth', format='%Y-%m-%d', validators=[DataRequired()])
     password = PasswordField('Password', validators=[DataRequired()])
+    height = StringField('Height (M)', validators=[DataRequired(), Length(min=2, max=4)])
+    weight = StringField('weight (Kg)', validators=[DataRequired(), Length(min=2, max=4)])
     submit = SubmitField('Register')
 
 class LoginForm(FlaskForm):
@@ -26,8 +29,19 @@ class LoginForm(FlaskForm):
     password = PasswordField('Password', validators=[DataRequired()])
     submit = SubmitField('Login')
 
-@app.route('/home')
+def calculate_age(born):
+    today = datetime.today()
+    return today.year - born.year - ((today.month, today.day) < (born.month, born.day))
+
+@app.route('/')
 def home():
+     if 'username' not in session:  # Check if user is logged in
+         return redirect(url_for('login'))  # Redirect to login if not logged in
+     return render_template('home.html')
+
+
+@app.route('/home')
+def main_home():
     if 'username' not in session:
         return redirect(url_for('login'))
     
@@ -36,7 +50,7 @@ def home():
     user_ref = db.collection('users').document(username).get()
     if not user_ref.exists:
         flash("User data not found.", "danger")
-        return redirect(url_for('home'))
+        return redirect(url_for('main_home'))
 
     user_data = user_ref.to_dict()
 
@@ -78,12 +92,16 @@ def register():
         if user.exists:
             flash("Username already exists. Choose another.", "danger")
         else:
+            age = calculate_age(form.date_of_birth.data)
             hashed_password = generate_password_hash(form.password.data, method='pbkdf2:sha256')
             user_ref.set({
                 'name': form.name.data,
                 'username': form.username.data,
                 'date_of_birth': form.date_of_birth.data.strftime('%Y-%m-%d'),
-                'password': hashed_password
+                'height': form.height.data,
+                'weight': form.weight.data,
+                'password': hashed_password,
+                'age': age
             })
             flash("Registration successful! Please log in.", "success")
             return redirect(url_for('login'))
@@ -99,7 +117,7 @@ def login():
             if check_password_hash(user_data['password'], form.password.data):
                 session['username'] = user_data['username']
                 flash("Login successful!", "success")
-                return redirect(url_for('home'))
+                return redirect(url_for('main_home'))
             else:
                 flash("Invalid password. Try again.", "danger")
         else:
@@ -134,7 +152,35 @@ def profile():
                           name=user_data['name'], 
                           username=user_data['username'], 
                           date_of_birth=user_data['date_of_birth'],
+                          age =user_data['age'],
+                          weight =user_data['weight'],
+                          height =user_data['height'],
                           recordings=recordings)
+
+@app.route('/update_profile', methods=['GET', 'POST'])
+def update_profile():
+    if 'username' not in session:
+        return redirect(url_for('login'))
+
+    username = session['username']
+    user_ref = db.collection('users').document(username)
+    user_data = user_ref.get().to_dict()
+
+    if request.method == 'POST':
+        # Update user data in Firestore
+        user_ref.update({
+            'name': request.form['name'],
+            'weight': float(request.form['weight']),
+            'height': float(request.form['height'])
+        })
+        flash("Profile updated successfully!", "success")
+        return redirect(url_for('profile'))
+
+    # Pre-fill the form with current user data
+    return render_template('update_profile.html', 
+                           name=user_data['name'], 
+                           weight=user_data['weight'], 
+                           height=user_data['height'])
 
 @app.route('/logout')
 def logout():

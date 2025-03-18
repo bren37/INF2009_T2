@@ -93,8 +93,10 @@
             {{ form.hidden_tag() }}
             <p>{{ form.name.label }} <input type="text" name="name" placeholder="Full Name"></p>
             <p>{{ form.username.label }} <input type="text" name="username" placeholder="Username"></p>
-            <p>{{ form.date_of_birth.label }} <input type="date" name="date_of_birth"></p>
             <p>{{ form.password.label }} <input type="password" name="password" placeholder="Password"></p>
+            <p>{{ form.date_of_birth.label }} <input type="date" name="date_of_birth"></p>
+            <p>{{ form.height.label}} <input type ="text" name="height" placeholder="Height"></p>
+            <p>{{ form.weight.label}} <input type ="text" name="weight" placeholder="Weight"></p>
             <p><input type="submit" value="Register"></p>
         </form>
 

@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Update Profile</title>
+</head>
+<body>
+    <h1>Update Profile</h1>
+    <form method="POST">
+        <div>
+            <label for="name">Name:</label><br>
+            <input type="text" id="name" name="name" value="{{ name }}" required><br>
+        </div>
+        <div>
+            <label for="weight">Weight (kg):</label><br>
+            <input type="text" id="weight" name="weight" value="{{ weight }}" required><br>
+        </div>
+        <div>
+            <label for="height">Height (m):</label><br>
+            <input type="text" id="height" name="height" value="{{ height }}" required><br>
+        </div>
+        <div>
+            <button type="submit">Save Changes</button>
+        </div>
+    </form>
+    <a href="{{ url_for('profile') }}"><button>Cancel</button></a>
+</body>
+</html>

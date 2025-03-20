@@ -11,7 +11,7 @@ app = Flask(__name__)
 app.config['SECRET_KEY'] = 'your_secret_key'
 
 # Initialize Firebase
-cred = credentials.Certificate("ROUTE/TO/THE/CREDENTIALS/FILE")
+cred = credentials.Certificate("C:/Users/Brendan/Desktop/INF2009_T2/credentials/credentials.json")
 firebase_admin.initialize_app(cred)
 db = firestore.client()
 
@@ -37,7 +37,7 @@ def calculate_age(born):
 def home():
      if 'username' not in session:  # Check if user is logged in
          return redirect(url_for('login'))  # Redirect to login if not logged in
-     return render_template('home.html')
+     return redirect(url_for('main_home'))
 
 
 @app.route('/home')
@@ -63,17 +63,16 @@ def main_home():
     recordings.sort(key=lambda x: x['attempt'])
 
     # Prepare data for the chart
-    labels = []  # Attempt numbers or timestamps
-    data = []    # Number of pushups
-    for recording in recordings:
-        labels.append(f"Attempt {recording['attempt']}")  # Use attempt number as label
-        data.append(recording['no_of_reps'])  # Use pushups as data
+    labels = [f"Attempt {recording['attempt']}" for recording in recordings]
+    data = [recording['no_of_reps'] for recording in recordings]  # Number of pushups
 
     # Fetch the most recent recording
     most_recent_recording_ref = db.collection('recording').where('username', '==', username).order_by('timestamp',direction=firestore.Query.DESCENDING).limit(1).stream()
     most_recent_recording = None
     for recording in most_recent_recording_ref:
         most_recent_recording = recording.to_dict()
+        if 'bad_form_img' not in most_recent_recording:
+            most_recent_recording['bad_form_img'] = []
 
     # Pass user data, chart data, and most recent recording to the template
     return render_template('home.html', 
@@ -181,6 +180,32 @@ def update_profile():
                            name=user_data['name'], 
                            weight=user_data['weight'], 
                            height=user_data['height'])
+
+@app.route('/view_recording_details/<int:attempt>')
+def view_recording_details(attempt):
+    if 'username' not in session:
+        return redirect(url_for('login'))
+
+    username = session['username']
+
+    print(f"Fetching recording for username: {username}, attempt: {attempt}")
+
+    attempt_str = str(attempt)
+
+    # Fetch the specific recording based on the attempt number
+    recording_ref = db.collection('recording').where('username', '==', username).where('attempt', '==', attempt_str).stream()
+
+    
+
+    recording = None
+    for rec in recording_ref:
+        recording = rec.to_dict()
+
+    if not recording:
+        flash("Recording not found.", "danger")
+        return redirect(url_for('profile'))
+
+    return render_template('recording_details.html', recording=recording)
 
 @app.route('/logout')
 def logout():

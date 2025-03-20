@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Recording Details</title>
+    <style>
+        .recording-details {
+            border: 1px solid #ccc;
+            padding: 20px;
+            margin: 20px 0;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+        .recording-details img {
+            max-width: 100%;
+            height: auto;
+            border-radius: 8px;
+            margin: 10px;
+        }
+        .image-container {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+    </style>
+</head>
+<body>
+    <a href="{{ url_for('profile') }}">Back to Profile</a>
+    <h1>Recording Details</h1>
+
+    <div class="recording-details">
+        <p><strong>Attempt:</strong> {{ recording.attempt }}</p>
+        <p><strong>Pushups:</strong> {{ recording.no_of_reps }}</p>
+        <p><strong>Timestamp:</strong> {{ recording.timestamp }}</p>
+        {% if recording.bad_form_img %}
+            <p><strong>Bad Form Images:</strong></p>
+            <div class="image-container">
+                {% for img in recording.bad_form_img %}
+                    <img src="data:image/jpeg;base64,{{ img }}" alt="Bad Form Image">
+                {% endfor %}
+            </div>
+        {% else %}
+            <p>No bad form images available.</p>
+        {% endif %}
+    </div>
+</body>
+</html>

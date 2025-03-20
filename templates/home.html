@@ -38,10 +38,14 @@
             <p><strong>Pushups:</strong> {{ most_recent_recording.no_of_reps }}</p>
             <p><strong>Timestamp:</strong> {{ most_recent_recording.timestamp }}</p>
             {% if most_recent_recording.bad_form_img %}
-                <p><strong>Bad Form Image:</strong></p>
-                <img src="data:image/jpeg;base64,{{ most_recent_recording.bad_form_img }}" alt="Bad Form Image">
+                <p><strong>Bad Form Images:</strong></p>
+                <div class="image-container">
+                    {% for img in most_recent_recording.bad_form_img %}
+                        <img src="data:image/jpeg;base64,{{ img }}" alt="Bad Form Image">
+                    {% endfor %}
+                </div>
             {% else %}
-                <p>No bad form image available.</p>
+                <p>No bad form images available.</p>
             {% endif %}
         {% else %}
             <p>No recordings found.</p>

@@ -1,0 +1,4 @@
+Flask==2.3.2
+Flask-WTF==1.1.1
+firebase-admin==6.2.0
+Werkzeug==2.3.7

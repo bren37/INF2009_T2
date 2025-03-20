@@ -50,6 +50,11 @@
                     <td>{{ recording.attempt }}</td>
                     <td>{{ recording.no_of_reps }}</td>
                     <td>{{ recording.timestamp }}</td>
+                    <td>
+                        <a href="{{ url_for('view_recording_details', attempt=recording.attempt) }}">
+                            <button class="view-details-btn">View Details</button>
+                        </a>
+                    </td>
                 </tr>
             {% endfor %}
         </tbody>

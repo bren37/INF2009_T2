@@ -21,3 +21,7 @@
    - test account:
        - Username: `tom1`
        - Password: `passw0rd`
+    
+## Troubleshooting
+- Ensure that `credentials.json` file path is updated to your file path location
+  - `credentials.json` file is located in credentials folder

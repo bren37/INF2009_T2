@@ -11,7 +11,7 @@ app = Flask(__name__)
 app.config['SECRET_KEY'] = 'your_secret_key'
 
 # Initialize Firebase
-cred = credentials.Certificate("PATH/TO/YOUR/CREDENTIAL/JSON/FILE")
+cred = credentials.Certificate("credentials\credentials.json")
 firebase_admin.initialize_app(cred)
 db = firestore.client()
 
@@ -22,6 +22,7 @@ class RegistrationForm(FlaskForm):
     password = PasswordField('Password', validators=[DataRequired()])
     height = StringField('Height (M)', validators=[DataRequired(), Length(min=2, max=4)])
     weight = StringField('weight (Kg)', validators=[DataRequired(), Length(min=2, max=4)])
+    pushup_goal = IntegerField('Push-up Goal', validators=[DataRequired()])
     submit = SubmitField('Register')
 
 class LoginForm(FlaskForm):
@@ -100,7 +101,8 @@ def register():
                 'height': form.height.data,
                 'weight': form.weight.data,
                 'password': hashed_password,
-                'age': age
+                'age': age,
+                'pushup_goal': form.pushup_goal.data
             })
             flash("Registration successful! Please log in.", "success")
             return redirect(url_for('login'))
@@ -154,6 +156,7 @@ def profile():
                           age =user_data['age'],
                           weight =user_data['weight'],
                           height =user_data['height'],
+                          pushup_goal =user_data['pushup_goal'],
                           recordings=recordings)
 
 @app.route('/update_profile', methods=['GET', 'POST'])
@@ -170,16 +173,19 @@ def update_profile():
         user_ref.update({
             'name': request.form['name'],
             'weight': float(request.form['weight']),
-            'height': float(request.form['height'])
+            'height': float(request.form['height']),
+            'pushup_goal': int(request.form['pushup_goal'])
         })
         flash("Profile updated successfully!", "success")
         return redirect(url_for('profile'))
 
-    # Pre-fill the form with current user data
+    # Pre-fill the form with current user dataE
     return render_template('update_profile.html', 
                            name=user_data['name'], 
                            weight=user_data['weight'], 
-                           height=user_data['height'])
+                           height=user_data['height'],
+                           goal=user_data['pushup_goal']
+                           )
 
 @app.route('/view_recording_details/<int:attempt>')
 def view_recording_details(attempt):

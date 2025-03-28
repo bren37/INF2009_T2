@@ -6,7 +6,7 @@
     <title>Home</title>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
-        .recording-card {
+        .recording-card, .prediction-card {
             border: 1px solid #ccc;
             padding: 20px;
             margin: 20px 0;
@@ -49,6 +49,18 @@
             {% endif %}
         {% else %}
             <p>No recordings found.</p>
+        {% endif %}
+    </div>
+
+    <div class="prediction-card">
+        <h1>Push-up Prediction</h1>
+        {% if prediction %}
+            {% if prediction.startswith('iVBORw0KGgo') %}
+                <h2>Predicted Pushup Progress</h2>
+                <img src="data:image/png;base64,{{ prediction }}" alt="Predicted Pushup Progress">
+            {% else %}
+                <p>Predicted time to reach your goal: {{ prediction }} days</p>
+            {% endif %}
         {% endif %}
     </div>
 

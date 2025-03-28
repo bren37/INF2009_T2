@@ -3,72 +3,198 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Home</title>
+    <title>Home - Push-up Tracker</title>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
-        .recording-card, .prediction-card {
-            border: 1px solid #ccc;
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f4f7fc;
+            color: #333;
+            margin: 0;
+            padding: 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        header {
+            background-color: #fff;
+            color: #007bff;
+            padding: 20px 0;
+            width: 100%;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        header nav a {
+            color: #007bff;
+            text-decoration: none;
+            margin: 0 15px;
+            font-weight: bold;
+            transition: color 0.3s ease;
+        }
+
+        header nav a:hover {
+            color: #0056b3;
+        }
+
+        .container {
+            width: 90%;
+            max-width: 960px;
             padding: 20px;
-            margin: 20px 0;
+            background-color: #fff;
+            border-radius: 8px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+            margin-bottom: 20px;
+        }
+
+        h1, h2 {
+            color: black;
+            text-align: center;
+            margin-bottom: 20px;
+        }
+
+        .recording-card, .prediction-card {
+            border: 1px solid #ddd;
+            padding: 20px;
+            margin-bottom: 20px;
             border-radius: 8px;
             box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+            background-color: #fff;
         }
-        .recording-card img {
-            max-width: 100%;
+
+        .recording-card h2, .prediction-card h2 {
+            color: #28a745;
+            text-align: left;
+            margin-top: 0;
+            margin-bottom: 15px;
+            border-bottom: 2px solid #eee;
+            padding-bottom: 10px;
+        }
+
+        .recording-card p, .prediction-card p {
+            margin-bottom: 10px;
+            line-height: 1.6;
+        }
+
+        .recording-card strong {
+            font-weight: bold;
+            color: #555;
+        }
+
+        .image-container {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin-top: 10px;
+        }
+
+        .image-container img {
+            max-width: 150px;
             height: auto;
-            border-radius: 8px;
+            border-radius: 4px;
+            box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
         }
+
         .chart-container {
-            width: 75%;
-            margin: auto;
+            width: 100%;
+            max-width: 800px;
+            height: 90%;
+            min-height:480px;
+            max-height:300px;
+            margin: 20px auto;
+            background-color: #fff;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+            overflow-x: auto; /* Add this line */
+        }
+
+        .chart-container h2 {
+            color: #007bff;
+            text-align: center;
+            margin-top: 0;
+            margin-bottom: 15px;
+            border-bottom: 2px solid #eee;
+            padding-bottom: 10px;
+        }
+
+        /* Responsive adjustments */
+        @media (max-width: 768px) {
+            .container {
+                width: 95%;
+                padding: 15px;
+            }
+            header nav a {
+                margin: 0 10px;
+            }
+            .image-container img {
+                max-width: 100px;
+            }
+            .chart-container {
+                width: 100%;
+            }
         }
     </style>
 </head>
 <body>
-    <a href="{{ url_for('profile') }}">Profile</a> | <a href="{{ url_for('logout') }}">Logout</a>
-    <h1>Welcome! {{ username }}</h1>
-    <div style="width: 75%; margin: auto;">
-        <canvas id="pushupChart"></canvas>
-    </div>
+    <header>
+        <nav>
+            <a href="{{ url_for('profile') }}">Profile</a>
+            <a href="{{ url_for('logout') }}">Logout</a>
+        </nav>
+    </header>
 
-    <div class="recording-card">
-        <h2>Most Recent Pushup Recording</h2>
-        {% if most_recent_recording %}
-            <p><strong>Attempt:</strong> {{ most_recent_recording.attempt }}</p>
-            <p><strong>Pushups:</strong> {{ most_recent_recording.no_of_reps }}</p>
-            <p><strong>Timestamp:</strong> {{ most_recent_recording.timestamp }}</p>
-            {% if most_recent_recording.bad_form_img %}
-                <p><strong>Bad Form Images:</strong></p>
-                <div class="image-container">
-                    {% for img in most_recent_recording.bad_form_img %}
-                        <img src="data:image/jpeg;base64,{{ img }}" alt="Bad Form Image">
-                    {% endfor %}
-                </div>
-            {% else %}
-                <p>No bad form images available.</p>
-            {% endif %}
-        {% else %}
-            <p>No recordings found.</p>
-        {% endif %}
-    </div>
+    <div class="container">
+        <h1>Welcome, {{ username }}!</h1>
 
-    <div class="prediction-card">
-        <h1>Push-up Prediction</h1>
-        {% if prediction %}
-            {% if prediction.startswith('iVBORw0KGgo') %}
-                <h2>Predicted Pushup Progress</h2>
-                <img src="data:image/png;base64,{{ prediction }}" alt="Predicted Pushup Progress">
+        <div class="chart-container">
+            <h2>Past Push-up Records</h2>
+            <canvas id="pushupChart"></canvas>
+        </div>
+
+        <div class="recording-card">
+            <h2>Most Recent Pushup Recording</h2>
+            {% if most_recent_recording %}
+                <p><strong>Attempt:</strong> {{ most_recent_recording.attempt }}</p>
+                <p><strong>Pushups:</strong> {{ most_recent_recording.no_of_reps }}</p>
+                <p><strong>Timestamp:</strong> {{ most_recent_recording.timestamp }}</p>
+                {% if most_recent_recording.bad_form_img %}
+                    <p><strong>Bad Form Images:</strong></p>
+                    <div class="image-container">
+                        {% for img in most_recent_recording.bad_form_img %}
+                            <img src="data:image/jpeg;base64,{{ img }}" alt="Bad Form Image">
+                        {% endfor %}
+                    </div>
+                {% else %}
+                    <p>No bad form images available.</p>
+                {% endif %}
             {% else %}
-                <p>Predicted time to reach your goal: {{ prediction }} days</p>
+                <p>No recordings found.</p>
             {% endif %}
-        {% endif %}
+        </div>
+
+        <div class="prediction-card">
+            <h2>Push-up Prediction</h2>
+            {% if prediction %}
+                {% if prediction.startswith('iVBORw0KGgo') %}
+                    <h3>Predicted Pushup Progress</h3>
+                    <img src="data:image/png;base64,{{ prediction }}" alt="Predicted Pushup Progress" style="max-width: 100%;">
+                {% else %}
+                    <p>Predicted time to reach your goal: <strong>{{ prediction }} days</strong></p>
+                {% endif %}
+            {% endif %}
+        </div>
     </div>
 
     <script>
         // Get data passed from Flask
         const pushupLabels = {{ labels | tojson | safe }};
         const pushupData = {{ data | tojson | safe }};
-    
+
         // Render the chart
         const ctx = document.getElementById('pushupChart').getContext('2d');
         const pushupChart = new Chart(ctx, {
@@ -85,6 +211,8 @@
                 }]
             },
             options: {
+                responsive: true,
+                maintainAspectRatio: false,
                 scales: {
                     y: {
                         beginAtZero: true,
@@ -103,7 +231,13 @@
                 plugins: {
                     title: {
                         display: true,
-                        text: 'Past Pushup Records'
+                        text: 'Past Pushup Records',
+                        font: {
+                            size: 16
+                        }
+                    },
+                    legend: {
+                        display: false // Hide the legend as there's only one dataset
                     }
                 }
             }

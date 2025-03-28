@@ -95,14 +95,38 @@
             <p>{{ form.username.label }} <input type="text" name="username" placeholder="Username"></p>
             <p>{{ form.password.label }} <input type="password" name="password" placeholder="Password"></p>
             <p>{{ form.date_of_birth.label }} <input type="date" name="date_of_birth"></p>
-            <p>{{ form.height.label}} <input type ="text" name="height" placeholder="Height"></p>
-            <p>{{ form.weight.label}} <input type ="text" name="weight" placeholder="Weight"></p>
-            <p>{{ form.pushup_goal.label}} <input type ="text" name="pushup_goal" placeholder="Push-up Goal"></p>
+            <p>{{ form.height.label}} <input type ="text" name="height" placeholder="Height" onkeypress="return isFloatOrIntegerKey(event)"></p>
+            <p>{{ form.weight.label}} <input type ="text" name="weight" placeholder="Weight" onkeypress="return isFloatOrIntegerKey(event)"></p>
+            <p>{{ form.pushup_goal.label}} <input type ="text" name="pushup_goal" placeholder="What is your push up goal?" onkeypress="return isNumberKey(event)"></p>
+            <p>{{ form.frequency.label}} <input type ="text" name="frequency" placeholder="How often do you do push ups in a week?" onkeypress="return isNumberKey(event)"></p>
             <p><input type="submit" value="Register"></p>
         </form>
 
         <a href="{{ url_for('login') }}">Already have an account? Login</a>
     </div>
+    <script>
+        function isNumberKey(evt) {
+            var charCode = (evt.which) ? evt.which : event.keyCode;
+            if (charCode > 31 && (charCode < 48 || charCode > 57)) {
+            return false;
+            }
+            return true;
+        }
 
+        function isFloatOrIntegerKey(evt) {
+            var charCode = (evt.which) ? evt.which : event.keyCode;
+            if (charCode > 31 && (charCode < 48 || charCode > 57) && charCode !== 46) {
+                // Allow digits (0-9) and the decimal point (.)
+                return false;
+            }
+
+            // Ensure only one decimal point
+            if (charCode === 46 && evt.target.value.includes('.')) {
+                return false;
+            }
+
+            return true;
+            }
+    </script>
 </body>
 </html>

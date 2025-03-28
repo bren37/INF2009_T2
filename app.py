@@ -41,6 +41,7 @@ class RegistrationForm(FlaskForm):
     height = StringField('Height (M)', validators=[DataRequired(), Length(min=2, max=4)])
     weight = StringField('weight (Kg)', validators=[DataRequired(), Length(min=2, max=4)])
     pushup_goal = IntegerField('Push-up Goal', validators=[DataRequired()])
+    frequency = IntegerField('Frequency', validators=[DataRequired()])
     submit = SubmitField('Register')
 
 class LoginForm(FlaskForm):
@@ -58,7 +59,7 @@ def predict_progress(user_profile, past_records):
         current_weight = float(user_profile['weight'])
         current_age = int(user_profile['age'])
         current_gender_str = user_profile.get('gender', 'Unknown') # Handle potential missing gender
-        frequency = int(user_profile.get('frequency', 3)) # Handle potential missing frequency
+        frequency = int(user_profile.get('frequency', 1)) # Handle potential missing frequency
     except (ValueError, TypeError) as e:
         return None, f"Error: Invalid user profile data: {e}"
 
@@ -263,7 +264,8 @@ def register():
                 'weight': form.weight.data,
                 'password': hashed_password,
                 'age': age,
-                'pushup_goal': form.pushup_goal.data
+                'pushup_goal': form.pushup_goal.data,
+                'frequency': form.frequency.data
             })
             flash("Registration successful! Please log in.", "success")
             return redirect(url_for('login'))
@@ -318,6 +320,7 @@ def profile():
                           weight =user_data['weight'],
                           height =user_data['height'],
                           pushup_goal =user_data['pushup_goal'],
+                          frequency =user_data['frequency'],
                           recordings=recordings)
 
 @app.route('/update_profile', methods=['GET', 'POST'])
@@ -335,7 +338,8 @@ def update_profile():
             'name': request.form['name'],
             'weight': float(request.form['weight']),
             'height': float(request.form['height']),
-            'pushup_goal': int(request.form['pushup_goal'])
+            'pushup_goal': int(request.form['pushup_goal']),
+            'frequency': int(request.form['frequency'])
         })
         flash("Profile updated successfully!", "success")
         return redirect(url_for('profile'))
@@ -345,7 +349,8 @@ def update_profile():
                            name=user_data['name'], 
                            weight=user_data['weight'], 
                            height=user_data['height'],
-                           goal=user_data['pushup_goal']
+                           goal=user_data['pushup_goal'],
+                           frequency=user_data['frequency']
                            )
 
 @app.route('/view_recording_details/<int:attempt>')

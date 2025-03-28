@@ -1,4 +1,10 @@
 Flask==2.3.2
-Flask-WTF==1.1.1
+joblib==1.4.2
 firebase-admin==6.2.0
+pandas==2.0.3
+Flask-WTF==1.1.1
+WTForms==3.2.1
+matplotlib==3.7.1
 Werkzeug==2.3.7
+numpy==1.26.4
+scikit-learn==1.6.1

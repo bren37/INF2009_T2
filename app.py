@@ -16,7 +16,7 @@ from io import BytesIO
 import base64
 
 app = Flask(__name__)
-app.config['SECRET_KEY'] = 'your_secret_key'
+app.config['SECRET_KEY'] = '9wrjq9w8ruWqrfF'
 
 # Initialize Firebase
 cred = credentials.Certificate("credentials\credentials.json")

@@ -24,18 +24,18 @@
     
 ## Key Features
 ### Main Page
-- Display a line graph of past history of user push-ups record.
-- Includes the most recent push-up recording with attempt number, number of pushups, timestamp and the bad form images captured during the attempt.
+- **Pushup History Chart**: Display a line graph of past history of user push-ups record.
+- **Latest Attempt Summary**: Includes the most recent push-up recording with attempt number, number of pushups, timestamp and the bad form images captured during the attempt.
 
 ### Profile Page
-- Display the user's name, username, date of birth, weight and height
-- Includes a table of past push-up attempts, showing the number of push-ups completed and the timestamp of each attempt.
+- **User Information Overview**: Display the user's name, username, date of birth, weight and height
+- **Attempt History Table**: Includes a table of past push-up attempts, showing the number of push-ups completed and the timestamp of each attempt.
 
 ### Edit Profile Page
-- Allows users to edit their name, weight and height through the "Edit Profile" button.
+- **User Details Update**: Allows users to edit their name, weight and height through the "Edit Profile" button.
 
 ### View Attempt Details Page
-- Allow users to view more details in each attempt through the "View Details" button.
+- **Detailed Attempt Insights**: Allow users to view more details in each attempt through the "View Details" button.
 
 ### ML-Powered Pushup Progress Tracker
 - **Machine Learning Model**: Utilizes a trained regression model to forecast how the user's push-up count will improve over time.

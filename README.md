@@ -37,6 +37,11 @@
 ### View Attempt Details Page
 - Allow users to view more details in each attempt through the "View Details" button.
 
+### **ML-Powered Pushup Progress Tracker (New)**
+- **Machine Learning Model**: Utilizes a trained regression model to forecast how the user's push-up count will improve over time.
+- **Goal Setting**: Takes into account the user's entered push-up goal, personal data (weight, age, etc.), and historical attempt records.
+- **Interactive Predictions**: Generates a chart predicting daily progress toward their goal, providing an estimated timeline and intermediate milestones.
+- **Seamless Integration**: The prediction is automatically displayed under the “Push-up Prediction” section on the Home page once the user is logged in and have completed at least one push-up attempt.
     
 ## Troubleshooting
 - Ensure that `credentials.json` file path is updated to your file path location

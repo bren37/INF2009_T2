@@ -5,6 +5,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Home - Push-up Tracker</title>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/luxon@3.0.1"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-luxon@1.2.0"></script>
     <style>
         body {
             font-family: Arial, sans-serif;
@@ -156,28 +158,29 @@
             <canvas id="pushupChart"></canvas>
         </div>
     <div class="recording-card">
-        <h2>Most Recent Pushup Session</h2>
-        {% if most_recent_session %}
-            <p><strong>Attempt Number:</strong> {{ most_recent_session.attempt_number}}</p>
-            <p><strong>Total Pushups:</strong> {{ most_recent_session.stats.total_pushups }}</p>
-            <p><strong>Success Rate:</strong> {{ most_recent_session.stats.success_rate }}%</p>
-            <p><strong>Session Duration:</strong> {{ most_recent_session.stats.session_duration }} seconds</p>
-            <p><strong>Timestamp:</strong> {{ most_recent_session.timestamp }}</p>
-            
-            <h3>Bad Form Attempts</h3>
-            {% if wrong_forms %}
-                <div class="bad-form-images">
-                    {% for attempt in wrong_forms %}
-                        <div style="margin-bottom: 20px; border: 1px solid #eee; padding: 10px;">
-                            <p><strong>Attempt {{ attempt.attempt_number }}:</strong> {{ attempt.form_issue }}</p>
-                            {% if attempt.image %}
-                                <img src="data:image/jpeg;base64,{{ attempt.image }}" 
-                                     alt="Bad form - {{ attempt.form_issue }}"
-                                     style="max-width: 300px; max-height: 300px;">
-                            {% else %}
-                                <p>No image available for this attempt</p>
-                            {% endif %}
-                        </div>
+    <h2>Most Recent Pushup Session</h2>
+    {% if most_recent_session %}
+        <!-- <p><strong>Attempt Number:</strong> {{ most_recent_session.attempt_number }}</p> -->
+        <p><strong>Timestamp:</strong> {{ most_recent_session.timestamp }}</p>
+        <p><strong>Total Attempt:</strong> {{ most_recent_session.stats.total_attempts }}</p>
+        <p><strong>Total Pushups Done:</strong> {{ most_recent_session.stats.total_pushups }}</p>
+        <p><strong>Success Rate:</strong> {{ most_recent_session.stats.success_rate }}%</p>
+        <p><strong>Session Duration:</strong> {{ most_recent_session.stats.session_duration }} seconds</p>
+
+        <h3>Bad Form Attempts</h3>
+        {% if wrong_forms %}
+            <div class="bad-form-images">
+                {% for attempt in wrong_forms %}
+                    <div style="margin-bottom: 20px; border: 1px solid #eee; padding: 10px;">
+                        <p><strong>Attempt {{ attempt.attempt_number }}:</strong> {{ attempt.form_issue }}</p>
+                        {% if attempt.image %}
+                            <img src="data:image/jpeg;base64,{{ attempt.image }}" 
+                                alt="Bad form - {{ attempt.form_issue }}"
+                                style="max-width: 300px; max-height: 300px;">
+                        {% else %}
+                            <p>No image available for this attempt</p>
+                        {% endif %}
+                    </div>
                     {% endfor %}
                 </div>
             {% else %}
@@ -205,24 +208,30 @@
 
     <script>
         // Get data passed from Flask
-        const pushupLabels = {{ labels | tojson | safe }};
         const pushupData = {{ data | tojson | safe }};
-
+        const pushupTimestamps = {{ timestamps | tojson | safe }};
+        
+        // Create dataset with proper time formatting
+        const chartData = {
+            datasets: [{
+                label: 'Number of Pushups',
+                data: pushupTimestamps.map((timestamp, index) => ({
+                    x: timestamp,
+                    y: pushupData[index]
+                })),
+                backgroundColor: 'rgba(54, 162, 235, 0.2)',
+                borderColor: 'rgba(54, 162, 235, 1)',
+                borderWidth: 2,
+                fill: true,
+                tension: 0.4 // Adds slight curve to the line for better visibility
+            }]
+        };
+    
         // Render the chart
         const ctx = document.getElementById('pushupChart').getContext('2d');
         const pushupChart = new Chart(ctx, {
             type: 'line',
-            data: {
-                labels: pushupLabels,
-                datasets: [{
-                    label: 'Number of Pushups',
-                    data: pushupData,
-                    backgroundColor: 'rgba(54, 162, 235, 0.2)',
-                    borderColor: 'rgba(54, 162, 235, 1)',
-                    borderWidth: 2,
-                    fill: true
-                }]
-            },
+            data: chartData,
             options: {
                 responsive: true,
                 maintainAspectRatio: false,
@@ -232,25 +241,57 @@
                         title: {
                             display: true,
                             text: 'Number of Pushups'
-                        }
+                        },
+                        suggestedMax: Math.max(...pushupData) * 1.2 // Add 20% padding
                     },
                     x: {
+                        type: 'time',
+                        time: {
+                            unit: 'day', // Force day-level grouping
+                            tooltipFormat: 'yyyy-MM-dd HH:mm',
+                            displayFormats: {
+                                day: 'MMM d' // Show month and day only
+                            }
+                        },
                         title: {
                             display: true,
-                            text: 'Attempt'
+                            text: 'Date'
+                        },
+                        ticks: {
+                            autoSkip: true,
+                            maxRotation: 45,
+                            minRotation: 45
                         }
                     }
                 },
                 plugins: {
                     title: {
                         display: true,
-                        text: 'Past Pushup Records',
+                        text: 'Pushup Progress Over Time',
                         font: {
                             size: 16
                         }
                     },
                     legend: {
-                        display: false // Hide the legend as there's only one dataset
+                        display: false
+                    },
+                    tooltip: {
+                        callbacks: {
+                            title: function(context) {
+                                // Show full date and time in tooltip
+                                const date = new Date(context[0].raw.x);
+                                return date.toLocaleString();
+                            },
+                            label: function(context) {
+                                return `Pushups: ${context.parsed.y}`;
+                            }
+                        }
+                    }
+                },
+                elements: {
+                    point: {
+                        radius: 5, // Make points more visible
+                        hoverRadius: 7
                     }
                 }
             }

@@ -140,11 +140,17 @@
         <h1>Session Details</h1>
 
     <div class="session-details">
+        
+        <div class="detail-item">
+            <span class="detail-label">Timestamp:</span>
+            {{ session.timestamp }}
+        </div>
+
         <div class="detail-item">
             <span class="detail-label">Attempt Number:</span>
-            {{ attempt_number }}
+            {{ session.stats.total_attempts }}
         </div>
-        
+
         <div class="detail-item">
             <span class="detail-label">Total Pushups:</span>
             {{ session.stats.total_pushups }}
@@ -160,17 +166,14 @@
             {{ session.stats.session_duration }} seconds
         </div>
         
-        <div class="detail-item">
-            <span class="detail-label">Timestamp:</span>
-            {{ session.timestamp }}
-        </div>
+        
 
         <div class="form-issues">
             <h3>Form Issues</h3>
             {% if form_issues %}
                 {% for issue in form_issues %}
                     <div class="form-issue">
-                        <h4>Attempt {{ issue.attempt_number }}: {{ issue.description }}</h4>
+                        <h4>Issues: {{ issue.description }}</h4>
                         {% if issue.image %}
                             <div class="bad-form-images">
                                 <img src="data:image/jpeg;base64,{{ issue.image }}" 

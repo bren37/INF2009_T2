@@ -186,18 +186,16 @@
         <table>
             <thead>
                 <tr>
-                    <th>Attempt</th>
-                    <th>Pushups</th>
                     <th>Timestamp</th>
+                    <th>Pushups</th>
                     <th>Details</th>
                 </tr>
             </thead>
             <tbody>
                 {% for attempt in session_attempts %}
                     <tr>
-                        <td>{{ attempt.attempt_number }}</td>
-                        <td>{{ attempt.total_pushups }}</td>
                         <td>{{ attempt.timestamp }}</td>
+                        <td>{{ attempt.total_pushups }}</td>
                         <td>
                             <a href="{{ url_for('view_recording_details', session_id=attempt.session_id) }}" class="view-details-btn">View Details</a>
                         </td>

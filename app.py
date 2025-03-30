@@ -19,7 +19,7 @@ app = Flask(__name__)
 app.config['SECRET_KEY'] = '9wrjq9w8ruWqrfF'
 
 # Initialize Firebase
-cred = credentials.Certificate("credentials/credentials.json")
+cred = credentials.Certificate("C:/Users/brend/Desktop/INF2009_T2/credentials/credentials_new.json")
 firebase_admin.initialize_app(cred)
 db = firestore.client()
 
@@ -65,6 +65,8 @@ def format_timestamp_to_iso(timestamp_str):
     except Exception as e:
         print(f"Error formatting timestamp {timestamp_str}: {e}")
         return None
+
+
 
 def predict_progress(user_profile, past_records):
     try:
@@ -270,23 +272,22 @@ def main_home():
     # Prepare data for the chart
     labels = []
     data = []
-    
-    # For each session, get the total_pushups from stats and create a label
-    for i, session_data in enumerate(user_sessions):
-        session_id = session_data['session_id']
+    timestamps = []
+
+    for session_data in user_sessions:
+        # Get the timestamp
+        timestamp = session_data['timestamp']
         
-        # Get the attempt number from wrong_forms table for this session
-        wrong_forms_ref = db.collection('wrong_forms').where('session_id', '==', session_id).stream()
-        attempt_numbers = []
-        for wrong_form in wrong_forms_ref:
-            wrong_form_data = wrong_form.to_dict()
-            if 'attempt_number' in wrong_form_data:
-                attempt_numbers.append(int(wrong_form_data['attempt_number']))
+        # Convert to datetime if it's a float (Unix timestamp)
+        if isinstance(timestamp, (float, int)):
+            from datetime import datetime
+            timestamp = datetime.fromtimestamp(timestamp)
         
-        # Use the highest attempt number if available, otherwise use index
-        attempt_number = max(attempt_numbers) if attempt_numbers else i + 1
+        # Format as string for display (date only to group close attempts)
+        label = timestamp.strftime('%Y-%m-%d')
         
-        labels.append(f"Attempt {attempt_number}")
+        labels.append(label)
+        timestamps.append(timestamp.isoformat())
         data.append(session_data['stats'].get('total_pushups', 0))
 
     # Fetch the most recent session and its wrong forms
@@ -296,7 +297,6 @@ def main_home():
     
     most_recent_session = None
     wrong_forms = []
-    attempt_numbers = []  # To store all attempt numbers for this session
 
     for recent_session in most_recent_session_ref:
         most_recent_session = recent_session.to_dict()
@@ -305,14 +305,8 @@ def main_home():
         # Get wrong forms for this session
         wrong_forms_ref = db.collection('wrong_forms').where('session_id', '==', session_id).stream()
         for wrong_form in wrong_forms_ref:
-            wrong_form_data = wrong_form.to_dict()
-            wrong_forms.append(wrong_form_data)
-            if 'attempt_number' in wrong_form_data:
-                attempt_numbers.append(int(wrong_form_data['attempt_number']))
-        
-        # Set the attempt number for the session (highest from wrong_forms or default to 1)
-        most_recent_session['attempt_number'] = max(attempt_numbers) if attempt_numbers else 1
-    
+            wrong_forms.append(wrong_form.to_dict())
+
     prediction = predict()
 
     return render_template('home.html', 
@@ -320,6 +314,7 @@ def main_home():
                         username=user_data['username'], 
                         labels=labels, 
                         data=data, 
+                        timestamps=timestamps,  # Pass timestamps to template
                         most_recent_session=most_recent_session,
                         wrong_forms=wrong_forms,
                         prediction=prediction)

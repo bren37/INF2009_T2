@@ -193,13 +193,13 @@
                 </tr>
             </thead>
             <tbody>
-                {% for recording in recordings %}
+                {% for attempt in session_attempts %}
                     <tr>
-                        <td>{{ recording.attempt }}</td>
-                        <td>{{ recording.no_of_reps }}</td>
-                        <td>{{ recording.timestamp }}</td>
+                        <td>{{ attempt.attempt_number }}</td>
+                        <td>{{ attempt.total_pushups }}</td>
+                        <td>{{ attempt.timestamp }}</td>
                         <td>
-                            <a href="{{ url_for('view_recording_details', attempt=recording.attempt) }}" class="view-details-btn">View Details</a>
+                            <a href="{{ url_for('view_recording_details', session_id=attempt.session_id) }}" class="view-details-btn">View Details</a>
                         </td>
                     </tr>
                 {% endfor %}

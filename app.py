@@ -1,3 +1,4 @@
+from dateutil import parser
 from flask import Flask, render_template, redirect, url_for, request, session, flash, request, jsonify
 import joblib
 import firebase_admin
@@ -6,9 +7,8 @@ from firebase_admin import credentials, firestore
 from flask_wtf import FlaskForm
 from wtforms import StringField, PasswordField, SubmitField, DateField, IntegerField
 from wtforms.validators import DataRequired, Length
-from datetime import datetime
 from werkzeug.security import generate_password_hash, check_password_hash
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 import matplotlib
 matplotlib.use('Agg')
 import matplotlib.pyplot as plt
@@ -19,7 +19,7 @@ app = Flask(__name__)
 app.config['SECRET_KEY'] = '9wrjq9w8ruWqrfF'
 
 # Initialize Firebase
-cred = credentials.Certificate("credentials\credentials.json")
+cred = credentials.Certificate("credentials/credentials.json")
 firebase_admin.initialize_app(cred)
 db = firestore.client()
 
@@ -53,6 +53,19 @@ def calculate_age(born):
     today = datetime.today()
     return today.year - born.year - ((today.month, today.day) < (born.month, born.day))
 
+def format_timestamp_to_iso(timestamp_str):
+    """
+    Convert "25 March 2025 at 19:07:31 UTC+8" to "2025-03-25"
+    """
+    try:
+        # Parse the original timestamp
+        dt = parser.parse(timestamp_str)
+        # Format to YYYY-MM-DD
+        return dt.strftime("%Y-%m-%d")
+    except Exception as e:
+        print(f"Error formatting timestamp {timestamp_str}: {e}")
+        return None
+
 def predict_progress(user_profile, past_records):
     try:
         goal_reps = int(user_profile['pushup_goal'])
@@ -70,11 +83,11 @@ def predict_progress(user_profile, past_records):
         current_reps = 1
         cumulative_reps = 0
         time_elapsed = 0
-        start_date = datetime.now(tz=datetime.timezone(timedelta(hours=8))).date() # Use Singapore time
+        start_date = datetime.now(timezone(timedelta(hours=8))).date() # Use Singapore time
         progress_data.append({'date': start_date, 'pushups': current_reps})
     else:
         past_df = pd.DataFrame(past_records)
-        past_df['no_of_reps'] = pd.to_numeric(past_df['no_of_reps'], errors='coerce').fillna(0).astype(int)
+        past_df['no_of_reps'] = pd.to_numeric(past_df['total_pushups'], errors='coerce').fillna(0).astype(int)
         past_df['timestamp'] = pd.to_datetime(past_df['timestamp'], errors='coerce')
         past_df = past_df.dropna(subset=['timestamp', 'no_of_reps'])
         past_df = past_df.sort_values(by='timestamp')
@@ -90,7 +103,7 @@ def predict_progress(user_profile, past_records):
             current_reps = 1
             cumulative_reps = 0
             time_elapsed = 0
-            start_date = datetime.now(tz=datetime.timezone(timedelta(hours=8))).date() # Use Singapore time
+            start_date = datetime.now(timezone(timedelta(hours=8))).date() # Use Singapore time
             progress_data.append({'date': start_date, 'pushups': current_reps})
 
     days = 0
@@ -172,16 +185,43 @@ def predict():
     user_profile_from_db = user_ref.to_dict()
 
     # Fetch past records from Firestore
-    recordings_ref = db.collection('recording').where('username', '==', username).order_by('timestamp').stream()
-    past_records_from_db = []
+    recordings_ref = db.collection('sessions').where('username', '==', username).order_by('timestamp').stream()
+    sessions = []  # Array to store session data
+
     for recording in recordings_ref:
         recording_data = recording.to_dict()
-        if 'timestamp' in recording_data:
-            past_records_from_db.append(recording_data)
+        
+        if 'stats' in recording_data and 'timestamp' in recording_data['stats']:
+            total_pushups = recording_data['stats'].get('total_pushups', 0)
+            raw_timestamp = recording_data['stats'].get('timestamp')  # Take the timestamp from nested stats
+            
+            # Handle both UNIX timestamps and string timestamps
+            if isinstance(raw_timestamp, (int, float)):
+                formatted_timestamp = datetime.utcfromtimestamp(raw_timestamp).strftime("%Y-%m-%d")
+            elif isinstance(raw_timestamp, str):
+                try:
+                    formatted_timestamp = datetime.strptime(raw_timestamp, "%d %B %Y at %H:%M:%S UTC%z").strftime("%Y-%m-%d")
+                except ValueError:
+                    print(f"Warning: Timestamp format issue in recording {recording.id}")
+                    formatted_timestamp = "Unknown"
+            else:
+                formatted_timestamp = "Unknown"
+            
+            session_entry = {
+                "timestamp": formatted_timestamp,
+                "username": username,
+                "total_pushups": total_pushups
+                
+            }
+            sessions.append(session_entry)
         else:
-            print(f"Warning: Recording missing 'timestamp' field: {recording.id}")
+            print(f"Warning: Recording missing required fields: {recording.id}")
 
-    progress_data, error_message = predict_progress(user_profile_from_db, past_records_from_db)
+    # Print sessions array to verify
+    print(sessions)
+    print(username)
+
+    progress_data, error_message = predict_progress(user_profile_from_db, sessions)
     goal = int(user_profile_from_db.get('pushup_goal', 0))
 
     if error_message:
@@ -191,6 +231,9 @@ def predict():
         return plot_url
     else:
         return render_template('prediction.html', error="Could not generate prediction.")
+
+
+
 
 @app.route('/')
 def home():
@@ -213,36 +256,73 @@ def main_home():
 
     user_data = user_ref.to_dict()
 
-    recordings_ref = db.collection('recording').where('username', '==', username).stream()
-    recordings = []
-    for recording in recordings_ref:
-        recordings.append(recording.to_dict())
+    # Fetch all sessions for the user
+    sessions_query = db.collection('sessions').where('username', '==', username).stream()
+    user_sessions = []
+    for session_doc in sessions_query:
+        session_data = session_doc.to_dict()
+        if 'stats' in session_data and 'total_pushups' in session_data['stats']:
+            user_sessions.append(session_data)
 
-    # Sort recordings by attempt number (ascending order)
-    recordings.sort(key=lambda x: x['attempt'])
+    # Sort sessions by timestamp (ascending order)
+    user_sessions.sort(key=lambda x: x['timestamp'])
 
     # Prepare data for the chart
-    labels = [f"Attempt {recording['attempt']}" for recording in recordings]
-    data = [recording['no_of_reps'] for recording in recordings]  # Number of pushups
+    labels = []
+    data = []
+    
+    # For each session, get the total_pushups from stats and create a label
+    for i, session_data in enumerate(user_sessions):
+        session_id = session_data['session_id']
+        
+        # Get the attempt number from wrong_forms table for this session
+        wrong_forms_ref = db.collection('wrong_forms').where('session_id', '==', session_id).stream()
+        attempt_numbers = []
+        for wrong_form in wrong_forms_ref:
+            wrong_form_data = wrong_form.to_dict()
+            if 'attempt_number' in wrong_form_data:
+                attempt_numbers.append(int(wrong_form_data['attempt_number']))
+        
+        # Use the highest attempt number if available, otherwise use index
+        attempt_number = max(attempt_numbers) if attempt_numbers else i + 1
+        
+        labels.append(f"Attempt {attempt_number}")
+        data.append(session_data['stats'].get('total_pushups', 0))
 
-    # Fetch the most recent recording
-    most_recent_recording_ref = db.collection('recording').where('username', '==', username).order_by('timestamp',direction=firestore.Query.DESCENDING).limit(1).stream()
-    most_recent_recording = None
-    for recording in most_recent_recording_ref:
-        most_recent_recording = recording.to_dict()
-        if 'bad_form_img' not in most_recent_recording:
-            most_recent_recording['bad_form_img'] = []
+    # Fetch the most recent session and its wrong forms
+    most_recent_session_ref = db.collection('sessions').where('username', '==', username)\
+                                .order_by('timestamp', direction=firestore.Query.DESCENDING)\
+                                .limit(1).stream()
+    
+    most_recent_session = None
+    wrong_forms = []
+    attempt_numbers = []  # To store all attempt numbers for this session
+
+    for recent_session in most_recent_session_ref:
+        most_recent_session = recent_session.to_dict()
+        session_id = most_recent_session['session_id']
+        
+        # Get wrong forms for this session
+        wrong_forms_ref = db.collection('wrong_forms').where('session_id', '==', session_id).stream()
+        for wrong_form in wrong_forms_ref:
+            wrong_form_data = wrong_form.to_dict()
+            wrong_forms.append(wrong_form_data)
+            if 'attempt_number' in wrong_form_data:
+                attempt_numbers.append(int(wrong_form_data['attempt_number']))
+        
+        # Set the attempt number for the session (highest from wrong_forms or default to 1)
+        most_recent_session['attempt_number'] = max(attempt_numbers) if attempt_numbers else 1
     
     prediction = predict()
 
-    # Pass user data, chart data, and most recent recording to the template
     return render_template('home.html', 
-                          name=user_data['name'], 
-                          username=user_data['username'], 
-                          labels=labels, 
-                          data=data, 
-                          most_recent_recording=most_recent_recording,
-                          prediction=prediction)
+                        name=user_data['name'], 
+                        username=user_data['username'], 
+                        labels=labels, 
+                        data=data, 
+                        most_recent_session=most_recent_session,
+                        wrong_forms=wrong_forms,
+                        prediction=prediction)
                           
 
 @app.route('/register', methods=['GET', 'POST'])
@@ -293,7 +373,7 @@ def profile():
     if 'username' not in session:
         return redirect(url_for('login'))
 
-    # Fetch user data from Firestore
+    # Fetch user data from Firestore users collection
     username = session['username']
     user_ref = db.collection('users').document(username).get()
     if not user_ref.exists:
@@ -302,26 +382,51 @@ def profile():
 
     user_data = user_ref.to_dict()
 
-    # Fetch user's pushup recordings from Firestore
-    recordings_ref = db.collection('recording').where('username', '==', username).stream()
-    recordings = []
-    for recording in recordings_ref:
-        recordings.append(recording.to_dict())
+    # Fetch user's sessions from sessions collection
+    sessions_ref = db.collection('sessions').where('username', '==', username).stream()
+    sessions = []
+    for session_doc in sessions_ref:
+        session_data = session_doc.to_dict()
+        if 'stats' in session_data:  # Ensure session has stats
+            sessions.append(session_data)
 
-    # Sort recordings by attempt number (ascending order)
-    recordings.sort(key=lambda x: x['attempt'])
+    # Sort sessions by timestamp (newest first)
+    sessions.sort(key=lambda x: x['timestamp'], reverse=True)
 
-    # Pass user data and recordings to the template
+    # Fetch wrong forms for attempt numbers
+    wrong_forms_ref = db.collection('wrong_forms').where('username', '==', username).stream()
+    wrong_forms = [wrong_form.to_dict() for wrong_form in wrong_forms_ref]
+
+    # Combine session data with attempt numbers from wrong_forms
+    session_attempts = []
+    for user_session in sessions:
+        session_id = user_session['session_id']
+        # Find matching wrong forms for this session
+        matching_forms = [wf for wf in wrong_forms if wf.get('session_id') == session_id]
+        # Get highest attempt number or default to 1
+        attempt_numbers = [int(wf['attempt_number']) for wf in matching_forms if 'attempt_number' in wf]
+        attempt_number = max(attempt_numbers) if attempt_numbers else 1
+        
+        session_attempts.append({
+            'session_id': session_id,
+            'attempt_number': attempt_number,
+            'total_pushups': user_session['stats']['total_pushups'],
+            'timestamp': user_session['timestamp'],
+            'success_rate': user_session['stats']['success_rate'],
+            'session_duration': user_session['stats']['session_duration']
+        })
+
     return render_template('profile.html', 
-                          name=user_data['name'], 
-                          username=user_data['username'], 
-                          date_of_birth=user_data['date_of_birth'],
-                          age =user_data['age'],
-                          weight =user_data['weight'],
-                          height =user_data['height'],
-                          pushup_goal =user_data['pushup_goal'],
-                          frequency =user_data['frequency'],
-                          recordings=recordings)
+                        name=user_data['name'], 
+                        username=user_data['username'], 
+                        date_of_birth=user_data['date_of_birth'],
+                        age=user_data['age'],
+                        weight=user_data['weight'],
+                        height=user_data['height'],
+                        pushup_goal=user_data['pushup_goal'],
+                        frequency=user_data['frequency'],
+                        session_attempts=session_attempts)
+
 
 @app.route('/update_profile', methods=['GET', 'POST'])
 def update_profile():
@@ -353,31 +458,49 @@ def update_profile():
                            frequency=user_data['frequency']
                            )
 
-@app.route('/view_recording_details/<int:attempt>')
-def view_recording_details(attempt):
+@app.route('/view_recording_details/<string:session_id>')
+def view_recording_details(session_id):
     if 'username' not in session:
         return redirect(url_for('login'))
 
     username = session['username']
 
-    print(f"Fetching recording for username: {username}, attempt: {attempt}")
-
-    attempt_str = str(attempt)
-
-    # Fetch the specific recording based on the attempt number
-    recording_ref = db.collection('recording').where('username', '==', username).where('attempt', '==', attempt_str).stream()
-
+    # Fetch the session data
+    session_ref = db.collection('sessions').where('username', '==', username)\
+                                          .where('session_id', '==', session_id)\
+                                          .limit(1).stream()
     
+    session_data = None
+    for attempt_session in session_ref:
+        session_data = attempt_session.to_dict()
 
-    recording = None
-    for rec in recording_ref:
-        recording = rec.to_dict()
-
-    if not recording:
-        flash("Recording not found.", "danger")
+    if not session_data:
+        flash("Session not found.", "danger")
         return redirect(url_for('profile'))
 
-    return render_template('recording_details.html', recording=recording)
+    # Fetch wrong forms for this session
+    wrong_forms_ref = db.collection('wrong_forms').where('session_id', '==', session_id).stream()
+    wrong_forms = [wf.to_dict() for wf in wrong_forms_ref]
+    
+    # Get the highest attempt number
+    attempt_numbers = [int(wf['attempt_number']) for wf in wrong_forms if 'attempt_number' in wf]
+    attempt_number = max(attempt_numbers) if attempt_numbers else 1
+
+    # Prepare form issues with images
+    form_issues = []
+    for wf in wrong_forms:
+        if 'form_issue' in wf:
+            issue = {
+                'description': wf['form_issue'],
+                'attempt_number': wf.get('attempt_number', 'N/A'),
+                'image': wf.get('image')
+            }
+            form_issues.append(issue)
+
+    return render_template('recording_details.html', 
+                         session=session_data,
+                         attempt_number=attempt_number,
+                         form_issues=form_issues)
 
 @app.route('/logout')
 def logout():

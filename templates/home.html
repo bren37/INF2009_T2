@@ -155,27 +155,40 @@
             <h2>Past Push-up Records</h2>
             <canvas id="pushupChart"></canvas>
         </div>
-
-        <div class="recording-card">
-            <h2>Most Recent Pushup Recording</h2>
-            {% if most_recent_recording %}
-                <p><strong>Attempt:</strong> {{ most_recent_recording.attempt }}</p>
-                <p><strong>Pushups:</strong> {{ most_recent_recording.no_of_reps }}</p>
-                <p><strong>Timestamp:</strong> {{ most_recent_recording.timestamp }}</p>
-                {% if most_recent_recording.bad_form_img %}
-                    <p><strong>Bad Form Images:</strong></p>
-                    <div class="image-container">
-                        {% for img in most_recent_recording.bad_form_img %}
-                            <img src="data:image/jpeg;base64,{{ img }}" alt="Bad Form Image">
-                        {% endfor %}
-                    </div>
-                {% else %}
-                    <p>No bad form images available.</p>
-                {% endif %}
+    <div class="recording-card">
+        <h2>Most Recent Pushup Session</h2>
+        {% if most_recent_session %}
+            <p><strong>Attempt Number:</strong> {{ most_recent_session.attempt_number}}</p>
+            <p><strong>Total Pushups:</strong> {{ most_recent_session.stats.total_pushups }}</p>
+            <p><strong>Success Rate:</strong> {{ most_recent_session.stats.success_rate }}%</p>
+            <p><strong>Session Duration:</strong> {{ most_recent_session.stats.session_duration }} seconds</p>
+            <p><strong>Timestamp:</strong> {{ most_recent_session.timestamp }}</p>
+            
+            <h3>Bad Form Attempts</h3>
+            {% if wrong_forms %}
+                <div class="bad-form-images">
+                    {% for attempt in wrong_forms %}
+                        <div style="margin-bottom: 20px; border: 1px solid #eee; padding: 10px;">
+                            <p><strong>Attempt {{ attempt.attempt_number }}:</strong> {{ attempt.form_issue }}</p>
+                            {% if attempt.image %}
+                                <img src="data:image/jpeg;base64,{{ attempt.image }}" 
+                                     alt="Bad form - {{ attempt.form_issue }}"
+                                     style="max-width: 300px; max-height: 300px;">
+                            {% else %}
+                                <p>No image available for this attempt</p>
+                            {% endif %}
+                        </div>
+                    {% endfor %}
+                </div>
             {% else %}
-                <p>No recordings found.</p>
+                <p>No bad form attempts recorded.</p>
             {% endif %}
-        </div>
+        {% else %}
+            <p>No sessions found.</p>
+        {% endif %}
+    </div>
+
+    
 
         <div class="prediction-card">
             <h2>Push-up Prediction</h2>

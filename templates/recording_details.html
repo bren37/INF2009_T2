@@ -137,23 +137,53 @@
     </header>
 
     <div class="container">
-        <h1>Recording Details</h1>
+        <h1>Session Details</h1>
 
-        <div class="recording-details">
-            <h2>Recording Information</h2>
-            <p><strong>Attempt:</strong> {{ recording.attempt }}</p>
-            <p><strong>Pushups:</strong> {{ recording.no_of_reps }}</p>
-            <p><strong>Timestamp:</strong> {{ recording.timestamp }}</p>
+    <div class="session-details">
+        <div class="detail-item">
+            <span class="detail-label">Attempt Number:</span>
+            {{ attempt_number }}
+        </div>
+        
+        <div class="detail-item">
+            <span class="detail-label">Total Pushups:</span>
+            {{ session.stats.total_pushups }}
+        </div>
+        
+        <div class="detail-item">
+            <span class="detail-label">Success Rate:</span>
+            {{ session.stats.success_rate }}%
+        </div>
+        
+        <div class="detail-item">
+            <span class="detail-label">Session Duration:</span>
+            {{ session.stats.session_duration }} seconds
+        </div>
+        
+        <div class="detail-item">
+            <span class="detail-label">Timestamp:</span>
+            {{ session.timestamp }}
+        </div>
 
-            {% if recording.bad_form_img %}
-                <h2>Bad Form Images</h2>
-                <div class="image-container">
-                    {% for img in recording.bad_form_img %}
-                        <img src="data:image/jpeg;base64,{{ img }}" alt="Bad Form Image">
-                    {% endfor %}
-                </div>
-            {% else %}
-                <p><strong>Bad Form Images:</strong> No bad form images available.</p>
+        <div class="form-issues">
+            <h3>Form Issues</h3>
+            {% if form_issues %}
+                {% for issue in form_issues %}
+                    <div class="form-issue">
+                        <h4>Attempt {{ issue.attempt_number }}: {{ issue.description }}</h4>
+                        {% if issue.image %}
+                            <div class="bad-form-images">
+                                <img src="data:image/jpeg;base64,{{ issue.image }}" 
+                                     alt="Bad form: {{ issue.description }}"
+                                     title="{{ issue.description }}">
+                            </div>
+                        {% else %}
+                            <p>No image available for this issue</p>
+                        {% endif %}
+                    </div>
+                {% endfor %}
+                {% else %}
+                <p>No form issues recorded for this session.</p>
             {% endif %}
         </div>
     </div>

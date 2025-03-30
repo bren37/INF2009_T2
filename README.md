@@ -19,8 +19,8 @@
 2. run `py app.py` to start the application
 3. Navigate to `http://127.0.0.1:5000` in browser
    - test account:
-       - Username: `tom1`
-       - Password: `passw0rd`
+       - Username: `testing`
+       - Password: `testing`
     
 ## Key Features
 ### Main Page
